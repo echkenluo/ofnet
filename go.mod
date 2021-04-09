@@ -15,6 +15,7 @@ require (
 	github.com/vishvananda/netlink v0.0.0-20170220200719-fe3b5664d23a
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	google.golang.org/grpc v1.35.0
+	k8s.io/apimachinery v0.20.5
 )
 
 replace github.com/osrg/gobgp => github.com/zwtop/gobgp v0.0.0-20210127101833-12edfc1f4514
