@@ -143,7 +143,26 @@ func (self *VlanArpLearnerBridge) AddUplink(uplinkPort *PortInfo) error {
 }
 
 func (self *VlanArpLearnerBridge) UpdateUplink(uplinkName string, update PortUpdates) error {
-	// TODO. add uplink status management
+	self.agent.endpointMutex.Lock()
+	defer self.agent.endpointMutex.Unlock()
+
+	for ofPort, endpoint := range self.agent.localEndpointInfo {
+		self.sendGARP(ofPort, endpoint.IpAddr, endpoint.MacAddr, 0)
+
+	}
+	return nil
+}
+
+func (self *VlanArpLearnerBridge) sendGARP(ofPort uint32, ip net.IP, mac net.HardwareAddr, vlanID uint16) error {
+	pktOut := BuildGarpPkt(ip, mac, vlanID)
+	pktOut.AddAction(openflow13.NewActionOutput(ofPort))
+
+	// Send it out
+	if self.ofSwitch != nil {
+		self.ofSwitch.Send(pktOut)
+		self.agent.incrStats("GarpPktSent")
+	}
+
 	return nil
 }
 
@@ -229,11 +248,11 @@ func (self *VlanArpLearnerBridge) SwitchConnected(sw *ofctrl.OFSwitch) {
 	self.policyAgent.SwitchConnected(sw)
 	self.initFgraph()
 
-    // Delete flow with previousRoundNum cookie, and then persistent curRoundNum to ovsdb. We need to wait for long
-    // enough to guarantee that all of the basic flow which we are still required updated with new roundInfo encoding to
-    // flow cookie fields. But the time required to update all of the basic flow with updated roundInfo is
-    // non-determined.
-    // TODO  Implement a deterministic mechanism to control outdated flow flush procedure
+	// Delete flow with previousRoundNum cookie, and then persistent curRoundNum to ovsdb. We need to wait for long
+	// enough to guarantee that all of the basic flow which we are still required updated with new roundInfo encoding to
+	// flow cookie fields. But the time required to update all of the basic flow with updated roundInfo is
+	// non-determined.
+	// TODO  Implement a deterministic mechanism to control outdated flow flush procedure
 	go func() {
 		time.Sleep(time.Second * 15)
 		self.ofSwitch.DeleteFlowByRoundInfo(roundInfo.previousRoundNum)

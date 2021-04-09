@@ -38,11 +38,11 @@ func main() {
 	ofPortIpAddressUpdateMonitorChan := make(chan map[uint32][]net.IP, 1024)
 
 	var uplinkPort ofnet.PortInfo
-    uplinkPortName := "uplinkport"
-    uplinkPortInterface0Name := "ens10"
-    uplinkPortInterface0OfPort := uint32(15)
-    uplinkPortInterface1Name := "ens11"
-    uplinkPortInterface1OfPort := uint32(16)
+	uplinkPortName := "uplinkport"
+	uplinkPortInterface0Name := "ens10"
+	uplinkPortInterface0OfPort := uint32(15)
+	uplinkPortInterface1Name := "ens11"
+	uplinkPortInterface1OfPort := uint32(16)
 	// PortType := "individual"
 	PortType := "bond"
 
@@ -52,12 +52,12 @@ func main() {
 		LinkStatus: 0,
 		Port:       &uplinkPort,
 	}
-    link1 := ofnet.LinkInfo{
-        Name: uplinkPortInterface1Name,
-        OfPort: uplinkPortInterface1OfPort,
-        LinkStatus: 0,
-        Port: &uplinkPort,
-    }
+	link1 := ofnet.LinkInfo{
+		Name:       uplinkPortInterface1Name,
+		OfPort:     uplinkPortInterface1OfPort,
+		LinkStatus: 0,
+		Port:       &uplinkPort,
+	}
 	uplinkPort = ofnet.PortInfo{
 		Name:       uplinkPortName,
 		Type:       PortType,
@@ -65,7 +65,7 @@ func main() {
 		MbrLinks:   []*ofnet.LinkInfo{&link0, &link1},
 	}
 
-	agent, err := ofnet.NewOfnetAgent(bridgeName, "vlanArpLearner", localIp, RPC_PORT, OVSCTRL_PORT, &uplinkPort, nil, ofPortIpAddressUpdateMonitorChan)
+	agent, err := ofnet.NewOfnetAgent(bridgeName, "vlanArpLearner", localIp, RPC_PORT, OVSCTRL_PORT, nil, nil, ofPortIpAddressUpdateMonitorChan)
 	if err != nil {
 		log.Fatalf("Error when init vlanAgent: %s", bridgeName)
 	}
@@ -97,8 +97,11 @@ func main() {
 
 	ovsdbEventHandler := ofnet.NewOvsdbEventHandler(ovsClient)
 	ovsdbEventHandler.RegisterOvsdbEventCallbackHandlerFunc(ofnet.OvsdbEventHandlerFuncs{
-		LocalEndpointAddFunc:    agent.GetDatapath().AddLocalEndpoint,
-		LocalEndpointDeleteFunc: agent.GetDatapath().RemoveLocalEndpoint,
+		LocalEndpointAddFunc:        agent.GetDatapath().AddLocalEndpoint,
+		LocalEndpointDeleteFunc:     agent.GetDatapath().RemoveLocalEndpoint,
+		UplinkActiveSlaveUpdateFunc: agent.GetDatapath().UpdateUplink,
+		UplinkAddFunc:               agent.AddUplink,
+		UplinkDelFunc:               agent.RemoveUplink,
 	})
 
 	err = ovsdbEventHandler.StartOvsdbEventHandler()
